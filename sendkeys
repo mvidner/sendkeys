@@ -81,25 +81,19 @@ KEYS = {
 
 class Main
   attr_accessor :command
-  attr_accessor :delay_s
   attr_accessor :keystring
 
   def initialize
     self.command = nil
-    self.delay_s = 0.1
-    @keys_count = 0
 
     OptionParser.new do |opts|
       opts.banner = "Usage: sendkeys [-c command_to_pipe_to] STRING\n" \
-        "Where STRING can be 'ls<ret>ls<gt>/dev/null<ret>'"
+        "Where STRING can be 'ls<ret>ls<gt>/dev/null<ret>'\n" \
+        "and a <delay> delays 1s instead of sending a key"
 
       opts.on("-c", "--command COMMAND",
         "Pipe sendkeys to this commands, individually") do |v|
         self.command = v
-      end
-      opts.on("-d", "--delay SECONDS", Float,
-        "Delay SECONDS after each key (default: 0.1)") do |v|
-        self.delay_s = v
       end
     end.parse!
     self.keystring = ARGV[0] || ""
@@ -113,15 +107,7 @@ class Main
       puts qemu_cmd
       $stdout.flush # important when we are piped
     end
-    @keys_count += 1
-    if @keys_count > 80
-      self.delay_s = 0.3
-    elsif @keys_count > 10
-      self.delay_s = 0.15
-    else
-      self.delay_s = 0.01
-    end
-    sleep delay_s
+    sleep 0.1
   end
 
   PATTERN = /
@@ -135,6 +121,12 @@ class Main
     keystring.scan(PATTERN) do |match|
       if match[0] == "<"
         key_name = match.slice(1..-2)
+
+        if key_name == "delay"
+          sleep 1
+          next
+        end
+
         sendkey case key_name
                 when "lt" then "shift-comma"
                 when "gt" then "shift-dot"
